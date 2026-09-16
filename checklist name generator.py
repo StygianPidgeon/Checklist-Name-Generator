@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
-Filename: checklist name generator without ocr.py
+Filename: checklist name generator.py
 Author: Dawn Holley
-Date: 2026-08-11
-Version: 1.0.0
-Description: This script DOES NOT perform OCR in order to name scanned mandatory checklists for Mercedes-Benz
+Date: 2026-09-16
+Version: 1.0.2
+Description: This script offers a GUI in order to name scanned mandatory checklists for Mercedes-Benz
 '''
 
 '''
 License: GPL License
 Contact: dawn.holley@infosys.com
-Dependencies: pytesseract, PIL, pypdf, tkinter, pdf2image, numpy, requests
+Dependencies: PIL, tkinter, pdf2image
 '''
 
 from PIL import Image, ImageTk
@@ -22,7 +22,8 @@ import pypdf
 import os, sys, re, shutil, subprocess
 
 
-CURRENT_VERSION = '1.0.0'
+CURRENT_VERSION = '1.0.2'
+failure_count = 0
 
 #create a root window so popup windows can be displayed
 root = tk.Tk()
@@ -115,24 +116,32 @@ for file in os.listdir(output_path):
     def confirm():
         print(request_nr.get())
         print(ci_nr.get())
-        print(date_nr.get())
-        if not (re.match(pattern = '^\d{8}$', string = request_nr.get()) 
-                or re.match(pattern = '^\d{8}$', string = ci_nr.get()) 
-                or re.match(pattern = '^\d{8}$', string = date_nr.get())):
-            messagebox.showwarning(
-                'Incorrect information',
-                'One or more pieces of information entered does not conform to the naming convention.\n' \
-                'Please ensure that Request number, CI number and Date are 8 digits long each.'
-            )
-            return
-        try:
-            input = f'{checklist_type.get()}_Checklist_{request_nr.get()}_{ci_nr.get()}_{date_nr.get()}.pdf'
-            os.rename(f'{file_path}', f'{output_path}/{input}')
-        except Exception as e:
-            messagebox.showerror(
-                'Error', f'Could not save file:\n\n{e}'
-            )
-            return
+        if(not no_ci_found.get()) :
+            if not (re.match(pattern = '^\d{8}$', string = request_nr.get()) 
+                    or re.match(pattern = '^\d{8}$', string = ci_nr.get())):
+                messagebox.showwarning(
+                    'Incorrect information',
+                    'One or more pieces of information entered does not conform to the naming convention.\n' \
+                    'Please ensure that Request number, CI number and Date are 8 digits long each.'
+                )
+                return
+            try:
+                input = f'{checklist_type.get()}_{request_nr.get()}_{ci_nr.get()}.pdf'
+                os.rename(f'{file_path}', f'{output_path}/{input}')
+            except Exception as e:
+                messagebox.showerror(
+                    'Error', f'Could not save file:\n\n{e}'
+                )
+                return
+        else : 
+            try:
+                input = f'Deployment_auftragsnr_unknown_{failure_count}.pdf'
+                os.rename(f'{file_path}', f'{output_path}/{input}')
+            except Exception as e:
+                messagebox.showerror(
+                    'Error', f'Could not save file:\n\n{e}'
+                )
+                return
         dialog.destroy()
 
     #method called when pressing 'cancel' button
@@ -194,6 +203,14 @@ for file in os.listdir(output_path):
         dialog,
         textvariable = request_nr,
         width = 15
+    ).pack(padx = 15, pady = (15, 0))
+
+    no_ci_found = tk.BooleanVar(value=False)
+
+    tk.Checkbutton(
+        dialog,
+        text='There is no way for me to find the Request Number',
+        variable=no_ci_found
     ).pack(padx=15, pady=(5, 15))
 
     tk.Label(
@@ -206,19 +223,6 @@ for file in os.listdir(output_path):
     tk.Entry(
         dialog,
         textvariable = ci_nr,
-        width = 15
-    ).pack(padx=15, pady=(5, 15))
-
-    tk.Label(
-        dialog,
-        text = 'Date in DDMMYYYY format without separators'
-    ).pack(padx = 15, pady = (15, 0))
-
-    date_nr = tk.StringVar()
-
-    tk.Entry(
-        dialog,
-        textvariable = date_nr,
         width = 15
     ).pack(padx=15, pady=(5, 15))
 
