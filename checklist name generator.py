@@ -117,12 +117,13 @@ for file in os.listdir(output_path):
         print(request_nr.get())
         print(ci_nr.get())
         if(not no_ci_found.get()) :
-            if not (re.match(pattern = '^\d{8}$', string = request_nr.get()) 
-                    or re.match(pattern = '^\d{8}$', string = ci_nr.get())):
+            if not (re.match(pattern = r'^\d{8}$', string = request_nr.get()) 
+                    and re.match(pattern = r'^\d{8}$', string = ci_nr.get())
+                    and re.match(pattern = r'^(Deployment|Return)$', string = checklist_type.get())):
                 messagebox.showwarning(
                     'Incorrect information',
                     'One or more pieces of information entered does not conform to the naming convention.\n' \
-                    'Please ensure that Request number, CI number and Date are 8 digits long each.'
+                    'Please ensure that Request number and CI number are 8 digits long each, and that a Checklist Type has been selected.'
                 )
                 return
             try:
@@ -133,6 +134,13 @@ for file in os.listdir(output_path):
                     'Error', f'Could not save file:\n\n{e}'
                 )
                 return
+            try:
+                os.remove(f'{file_path}_image.bmp')
+            except Exception as e:
+                messagebox.showerror(
+                    'Error', f'Could not remove image file:\n\n{e}'
+                )
+                return
         else : 
             try:
                 input = f'Deployment_auftragsnr_unknown_{failure_count}.pdf'
@@ -141,6 +149,13 @@ for file in os.listdir(output_path):
             except Exception as e:
                 messagebox.showerror(
                     'Error', f'Could not save file:\n\n{e}'
+                )
+                return
+            try:
+                os.remove(f'{file_path}_image.bmp')
+            except Exception as e:
+                messagebox.showerror(
+                    'Error', f'Could not remove image file:\n\n{e}'
                 )
                 return
         processed_files += 1
@@ -278,6 +293,11 @@ for file in os.listdir(output_path):
     dialog.protocol("WM_DELETE_WINDOW", cancel)     
     dialog.bind('<Return>', lambda event: confirm())
     dialog.bind('<Escape>', lambda event: cancel())
+
+    dialog.attributes('-topmost', True)
+    dialog.focus_set()
+    dialog.lift()
+    
     dialog.wait_window()
     
 
