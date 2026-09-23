@@ -4,7 +4,7 @@
 Filename: checklist name generator.py
 Author: Dawn Holley
 Date: 2026-09-16
-Version: 1.0.2
+Version: 1.0.4
 Description: This script offers a GUI in order to name scanned mandatory checklists for Mercedes-Benz
 '''
 
@@ -22,8 +22,7 @@ import pypdf
 import os, sys, re, shutil, subprocess
 
 
-CURRENT_VERSION = '1.0.2'
-failure_count = 0
+CURRENT_VERSION = '1.0.4'
 
 #create a root window so popup windows can be displayed
 root = tk.Tk()
@@ -87,9 +86,9 @@ for file in os.listdir(selected_path):
     except Exception as e:
         print (repr(e))
     
-
-
-#reads the content of each pdf and renames it accordingly
+total_files : int = len(os.listdir(output_path))
+processed_files : int = 0
+failure_count : int = 0
 for file in os.listdir(output_path):
     file_name = file.split(r'.')
     file_path = output_path + '/' + file
@@ -114,6 +113,7 @@ for file in os.listdir(output_path):
     
     #method called when pressing 'confirm' button
     def confirm():
+        global failure_count, processed_files, total_files
         print(request_nr.get())
         print(ci_nr.get())
         if(not no_ci_found.get()) :
@@ -136,12 +136,14 @@ for file in os.listdir(output_path):
         else : 
             try:
                 input = f'Deployment_auftragsnr_unknown_{failure_count}.pdf'
+                failure_count += 1
                 os.rename(f'{file_path}', f'{output_path}/{input}')
             except Exception as e:
                 messagebox.showerror(
                     'Error', f'Could not save file:\n\n{e}'
                 )
                 return
+        processed_files += 1
         dialog.destroy()
 
     #method called when pressing 'cancel' button
@@ -149,7 +151,7 @@ for file in os.listdir(output_path):
         print("Exiting dialog")
         os._exit(0)
 
-#cuts up the page into an image
+    #cuts up the page into an image
     for page_number, page_data in enumerate(doc):
         full_scan = doc[page_number]
         full_scan = full_scan.convert('L')
@@ -166,6 +168,22 @@ for file in os.listdir(output_path):
     new_width = int(new_height * aspect_ratio)
     img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     picture = ImageTk.PhotoImage(img)
+
+    progress_label = tk.Label(
+        dialog,
+        text = f'Processing file {processed_files + 1} of {total_files}.'
+    )
+    progress_label.pack(padx = 15, pady = (15, 10))
+
+    progress_bar = ttk.Progressbar(
+        dialog,
+        length = 300,
+        mode = 'determinate',
+        maximum = total_files
+    )
+    progress_bar['value'] = processed_files
+    progress_bar.pack(padx=15, pady=(5, 15))
+
 
     tk.Label(
         dialog,
